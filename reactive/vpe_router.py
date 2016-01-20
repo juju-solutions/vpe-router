@@ -65,3 +65,8 @@ def add_route():
     router.ip('tunnel', 'add', gre_name, 'mode', 'gre', 'local', local_addr,
               'remote', remote_addr, 'dev', iface, 'key', 1, 'csum')
     router.ip('link', 'set', 'dev', gre_name, 'netns', site)
+
+
+@when('vpe.remove-site')
+def remove_route():
+    pass
