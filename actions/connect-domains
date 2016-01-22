@@ -13,11 +13,11 @@ from charms.reactive import (
 from charmhelpers.core.hookenv import action_fail
 
 
-set_state('vpe.connect_domains')
+set_state('vpe.connect-domains')
 
 try:
     main()
 except Exception as e:
     action_fail(repr(e))
 finally:
-    remove_state('vpe.connect_domains')
+    remove_state('vpe.connect-domains')
