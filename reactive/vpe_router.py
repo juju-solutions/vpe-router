@@ -3,6 +3,7 @@ from charmhelpers.core.hookenv import (
     config,
     status_set,
     action_get,
+    log
 )
 
 from charms.reactive import (
@@ -11,6 +12,7 @@ from charms.reactive import (
     is_state,
     remove_state,
     main,
+    when
 )
 
 from charms import router
@@ -21,7 +23,8 @@ cfg = config()
 
 @hook('install')
 def deps():
-    apt_install('some-stuff')
+    # apt_install('some-stuff')
+    pass
 
 
 @hook('config-changed')
@@ -65,6 +68,24 @@ def add_route():
     router.ip('tunnel', 'add', gre_name, 'mode', 'gre', 'local', local_addr,
               'remote', remote_addr, 'dev', iface, 'key', 1, 'csum')
     router.ip('link', 'set', 'dev', gre_name, 'netns', site)
+
+
+@when('connect-domains')
+def connect_domains():
+    params = [
+        'domain-name',
+        'iface-name',
+        'tunnel-name',
+        'local-ip',
+        'remote-ip',
+        'tunnel_key',
+        'internal-local-ip',
+        'internal-remote-ip',
+        'tunnel-type'
+    ]
+    config = (lambda p: {p: action_get(p)}, params)[1]
+    import json
+    log(json.dumps(config))
 
 
 @when('vpe.remove-site')
