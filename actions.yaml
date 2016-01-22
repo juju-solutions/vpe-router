@@ -56,9 +56,3 @@ actions:
       tunnel_name:
         type: string
         description:
-
-
-
-
-
-  connect_domains(domain_name, iface_name, tunnel_name, local_ip, remote_ip, tunnel_key, internal_local_ip, internal_remote_ip)
