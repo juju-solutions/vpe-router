@@ -1,61 +1,61 @@
 add-corporation:
-  description: foobar
-  options:
-    domain_name:
+  description: Add a new corporation to the router
+  params:
+    domain-name:
       type: string
-      descripton:
-    iface_name:
+      description: Name of the vlan corporation
+    iface-name:
       type: string
-      description:
-    vlan_id:
+      description: Device name. eg eth1
+    vlan-id:
       type: string
-      description:
+      description: The name of the vlan?
     cidr:
       type: string
-      description:
+      description: Network range to assign to the tagged vlan-id
 delete-corporation:
-  description: foobar
-  options:
-    domain_name:
+  description: Remove the corporation from the router completely
+  params:
+    domain-name:
       type: string
       description: The domain of the corporation to remove
 connect-domains:
-  description: foobar
-  options:
-    domain_name:
+  description: Connect the router to another router, where the same domain is present
+  params:
+    domain-name:
       type: string
-      description:
-    iface_name:
+      description: The domain of the coproration to connect
+    iface-name:
       type: string
-      description:
-    tunnel_name:
+      description: Device name. eg eth1
+    tunnel-name:
       type: string
-      description:
-    local_ip:
+      description: Name of the tunnel ?
+    local-ip:
       type: string
-      description:
-    remote_ip:
+      description: local ip ?
+    remote-ip:
       type: string
-      description:
-    tunnel_key:
+      description: remote ip ?
+    tunnel-key:
       type: string
-      description:
-    internal_local_ip:
+      description: tunnel key?
+    internal-local-ip:
       type: string
-      description:
-    internal_remote_ip:
+      description: internal local ip?
+    internal-remote-ip:
       type: string
-      description:
-    tunnel_type:
+      description: internal remote ip?
+    tunnel-type:
       type: string
       default: gre
-      description:
+      description: The type of tunnel to establish.
 delete-domain-connection:
-  description: foobar
-  options:
-    domain_name:
+  description: Remove the tunnel to another router where the domain is present.
+  params:
+    domain-name:
       type: string
-      description:
-    tunnel_name:
+      description: The domain of the corporation to unlink
+    tunnel-name:
       type: string
-      description:
+      description: The name of the tunnel to unlink that the domain-name is attached to
