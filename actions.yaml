@@ -1,62 +1,61 @@
-actions:
-  add_corporation:
-    description: foobar
-    params:
-      domain_name:
-        type: string
-        descripton:
-      iface_name:
-        type: string
-        description:
-      vlan_id:
-        type: string
-        description:
-      cidr:
-        type: string
-        description:
-  delete_corporation:
-    description: foobar
-    params:
-      domain_name:
-        type: string
-        description: The domain of the corporation to remove
-  connect_domains:
-    description: foobar
-    params:
-      domain_name:
-        type: string
-        description:
-      iface_name:
-        type: string
-        description:
-      tunnel_name:
-        type: string
-        description:
-      local_ip:
-        type: string
-        description:
-      remote_ip:
-        type: string
-        description:
-      tunnel_key:
-        type: string
-        description:
-      internal_local_ip:
-        type: string
-        description:
-      internal_remote_ip:
-        type: string
-        description:
-      tunnel_type:
-        type: string
-        default: gre
-        description:
-  delete_domain_connection:
-    description: foobar
-    params:
-      domain_name:
-        type: string
-        description:
-      tunnel_name:
-        type: string
-        description:
+add-corporation:
+  description: foobar
+  options:
+    domain_name:
+      type: string
+      descripton:
+    iface_name:
+      type: string
+      description:
+    vlan_id:
+      type: string
+      description:
+    cidr:
+      type: string
+      description:
+delete-corporation:
+  description: foobar
+  options:
+    domain_name:
+      type: string
+      description: The domain of the corporation to remove
+connect-domains:
+  description: foobar
+  options:
+    domain_name:
+      type: string
+      description:
+    iface_name:
+      type: string
+      description:
+    tunnel_name:
+      type: string
+      description:
+    local_ip:
+      type: string
+      description:
+    remote_ip:
+      type: string
+      description:
+    tunnel_key:
+      type: string
+      description:
+    internal_local_ip:
+      type: string
+      description:
+    internal_remote_ip:
+      type: string
+      description:
+    tunnel_type:
+      type: string
+      default: gre
+      description:
+delete-domain-connection:
+  description: foobar
+  options:
+    domain_name:
+      type: string
+      description:
+    tunnel_name:
+      type: string
+      description:
