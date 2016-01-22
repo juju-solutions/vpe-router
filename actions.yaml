@@ -47,6 +47,10 @@ actions:
       internal_remote_ip:
         type: string
         description:
+      tunnel_type:
+        type: string
+        default: gre
+        description:
   delete_domain_connection:
     description: foobar
     params:
