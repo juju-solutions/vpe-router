@@ -1,40 +1,64 @@
 actions:
-  add-site:
-    description: "add another site / vlan to router"
+  add_corporation:
+    description: foobar
     params:
-      name:
+      domain_name:
         type: string
-        description: network namespace and site name
+        descripton:
+      iface_name:
+        type: string
+        description:
+      vlan_id:
+        type: string
+        description:
       cidr:
         type: string
-        description: CIDR for routing
-      vlan-tag:
-        type: int
-        description: vlan tag traffic is advertised on
-      interface:
-        type: string
-        description: network inteface name to bind
-  remove-site:
-    description: remove site routing
+        description:
+  delete_corporation:
+    description: foobar
     params:
-      name:
+      domain_name:
         type: string
-        description: name of the site provided during add-site
-  add-route:
-    description: add GRE tunnel to a site
+        description: The domain of the corporation to remove
+  connect_domains:
+    description: foobar
     params:
-      site:
+      domain_name:
         type: string
-        description: site name for which to attach the route
-      name:
+        description:
+      iface_name:
         type: string
-        description: tunnel name, will be prefixed with site name
-      address:
-        type: object
-        params:
-          local:
-            type: string
-            description: local address for GRE tunnel
-          remote:
-            type: string
-            description: remote address for GRE tunnel
+        description:
+      tunnel_name:
+        type: string
+        description:
+      local_ip:
+        type: string
+        description:
+      remote_ip:
+        type: string
+        description:
+      tunnel_key:
+        type: string
+        description:
+      internal_local_ip:
+        type: string
+        description:
+      internal_remote_ip:
+        type: string
+        description:
+  delete_domain_connection:
+    description: foobar
+    params:
+      domain_name:
+        type: string
+        description:
+      tunnel_name:
+        type: string
+        description:
+
+
+
+
+
+  connect_domains(domain_name, iface_name, tunnel_name, local_ip, remote_ip, tunnel_key, internal_local_ip, internal_remote_ip)
