@@ -3,6 +3,7 @@ from charmhelpers.core.hookenv import (
     config,
     status_set,
     action_get,
+    action_fail,
     log
 )
 
@@ -70,7 +71,7 @@ def add_route():
     router.ip('link', 'set', 'dev', gre_name, 'netns', site)
 
 
-@when('connect-domains')
+@when('vpe.connect-domains')
 def connect_domains():
     params = [
         'domain-name',
@@ -78,14 +79,71 @@ def connect_domains():
         'tunnel-name',
         'local-ip',
         'remote-ip',
-        'tunnel_key',
+        'tunnel-key',
         'internal-local-ip',
         'internal-remote-ip',
         'tunnel-type'
     ]
-    config = (lambda p: {p: action_get(p)}, params)[1]
-    import json
-    log(json.dumps(config))
+    config = {}
+    for p in params:
+        config[p] = action_get(p)
+        if not config[p]:
+            return action_fail('Missing required value for parameter %s' % p)
+
+    # ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
+    #    iface_name key tunnel_key csum
+    router.ip(
+        'tunnel',
+        'add',
+        config['tunnel-name'],
+        'mode',
+        config['tunnel-type'],
+        'local',
+        config['local-ip'],
+        'remote',
+        config['remote-ip'],
+        'dev',
+        config['iface-name'],
+        'key',
+        config['tunnel-key'],
+        'csum'
+    )
+    # ip link set dev tunnel_name netns domain_name
+    router.ip(
+        'link',
+        'set',
+        'dev',
+        config['tunnel-name'],
+        'up'
+    )
+
+    # ip netns exec domain_name ip link set dev tunnel_name up
+    router.ip(
+        'netns',
+        'exec',
+        config['domain-name'],
+        'ip',
+        'link',
+        'set',
+        'dev',
+        config['tunnel-name'],
+        'up'
+    )
+
+    # ip netns exec domain_name ip address add internal_local_ip peer internal_remote_ip dev tunnel_name
+    router.ip(
+        'netns',
+        'exec',
+        config['domain-name'],
+        'ip',
+        'address',
+        'add',
+        config['internal-local-ip'],
+        'peer',
+        config['internal-remote-ip'],
+        'dev',
+        config['tunnel-name']
+    )
 
 
 @when('vpe.remove-site')
