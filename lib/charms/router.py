@@ -32,7 +32,7 @@ def ip(*args):
         largs = list(args)
         _run(['ip'] + largs)
     except subprocess.CalledProcessError as e:
-        raise Exception('unable to run %s: %s' % (' '.join(['ip'] + largs), e))
+        raise Exception('unable to run %s: %s' % (' '.join(['ip'] + args), e))
 
 
 def _run(cmd, env=None):
