@@ -29,8 +29,7 @@ class NetNS(object):
 
 def ip(*args):
     try:
-        largs = list(args)
-        _run(['ip'] + largs)
+        _run(['ip'] + list(args))
     except subprocess.CalledProcessError as e:
         raise Exception('unable to run %s: %s' % (' '.join(['ip'] + args), e))
 
