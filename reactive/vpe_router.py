@@ -9,10 +9,6 @@ from charmhelpers.core.hookenv import (
 
 from charms.reactive import (
     hook,
-    set_state,
-    is_state,
-    remove_state,
-    main,
     when
 )
 
@@ -33,42 +29,71 @@ def configure():
     pass
 
 
-@when('vpe.add-site')
-def add_site():
-    site = action_get('name')
+@when('vpe.add-corporation')
+def add_corporation():
+    '''
+    Create and Activate the network corporation
+    '''
+
+    domain_name = action_get('domain_name')
+    iface_name = action_get('iface_name')
+    vlan_id = action_get('vlan_id')
     cidr = action_get('cidr')
-    vlan = action_get('vland-tag')
-    ethN = action_get('interface')
 
-    link_name = '%s.%s' % (ethN, vlan)
+    missing = []
+    for item in [domain_name, iface_name, vlan_id, cidr]:
+        if not item:
+            missing.append(item)
 
-    # move these into router which will ultimately just call ip?
-    # need to figure out explicit vs abstracted
-    # router.new_site(site, ethN, vlan, cidr)
-    #  router.create_namespace(site)
-    router.ip('netns', 'add', site)
-    #  router.create_vlan(ethN, vlan)
-    router.ip('link', 'add', 'link', ethN, 'name', link_name, 'type', 'vlan',
-              'id', vlan)
-    #  router.vlan_ns(ethN, vlan, site)
-    router.ip('link', 'set', 'dev', link_name, 'netns', site)
-    #  router.link_up_ns(site, link_name, cidr)
-    router.ip('netns', 'exec', site, 'ip', 'link', 'set', 'dev', link_name, 'up')
-    router.ip('netns', 'exec', site, 'ip', 'address', 'add', cidr, 'dev', link_name)
+    if len(missing) > 0:
+        log('CRITICAL', 'Unable to complete operation due to missing required'
+            'param: {}'.format('item'))
 
+    iface_vlanid = '%s.%s' % (iface_name, vlan_id)
 
-@when('vpe.add-route')
-def add_route():
-    site = action_get('site')
-    name = action_get('name')
-    local_addr = action_get('address.local')
-    remote_addr = action_get('address.remote')
+    status_set('maintenance', 'Adding corporation {}'.format(domain_name))
 
-    gre_name = '%s%s' % (site, name)
+    # ip link add link iface_name domain_name vlan_id type vlan id vlan_id
+    router.ip('link',
+              'add',
+              'link',
+              iface_name,
+              domain_name,
+              vlan_id,
+              'type',
+              'vlan',
+              'id',
+              vlan_id)
 
-    router.ip('tunnel', 'add', gre_name, 'mode', 'gre', 'local', local_addr,
-              'remote', remote_addr, 'dev', iface, 'key', 1, 'csum')
-    router.ip('link', 'set', 'dev', gre_name, 'netns', site)
+    # ip link set dev iface_vlanid netns domain_name
+    router.ip('link',
+              'set',
+              'dev',
+              iface_vlanid,
+              'netns',
+              domain_name)
+
+    # ip netns exec domain_name ip link set dev iface_vlanid up
+    router.ip('netns',
+              'exec',
+              domain_name,
+              'ip',
+              'link',
+              'set',
+              'dev',
+              iface_vlanid,
+              'up')
+
+    # ip netns exec domain_name ip address add cidr dev iface_vlanid
+    router.ip('netns',
+              'exec',
+              domain_name,
+              'ip',
+              'address',
+              'add',
+              cidr,
+              'dev',
+              iface_vlanid)
 
 
 @when('vpe.connect-domains')
@@ -130,7 +155,8 @@ def connect_domains():
         'up'
     )
 
-    # ip netns exec domain_name ip address add internal_local_ip peer internal_remote_ip dev tunnel_name
+    # ip netns exec domain_name ip address add internal_local_ip peer \
+    # internal_remote_ip dev tunnel_name
     router.ip(
         'netns',
         'exec',
