@@ -102,8 +102,7 @@ def delete_corporation():
     domain_name = action_get('domain-name')
 
     # Remove all tunnels defined for this domain
-    p = router._run([
-        'ip',
+    p = router.ip(
         'netns',
         'exec',
         'domain_name',
@@ -119,7 +118,7 @@ def delete_corporation():
         '"remote any"',
         '|',
         'cut -d":" -f1'
-    ])
+    )
 
     # `p` should be a tuple of (stdout, stderr)
     tunnels = p[0]
@@ -147,8 +146,7 @@ def delete_corporation():
         )
 
     # Remove all interfaces associated to the domain
-    p = router._run(
-        'ip',
+    p = router.ip(
         'netns',
         'exec',
         'domain_name',
