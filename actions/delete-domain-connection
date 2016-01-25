@@ -15,4 +15,4 @@ try:
 except Exception as e:
     action_fail(repr(e))
 finally:
-    remove_state('vpe.delete-domain-connetion')
+    remove_state('vpe.delete-domain-connection')
