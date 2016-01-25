@@ -17,13 +17,13 @@ class NetNS(object):
         return cls(name)
 
     def up(self, iface, cidr):
-        self.exec('ip', 'link', 'set', 'dev', iface, 'up')
-        self.exec('ip', 'address', 'add', cidr, 'dev', iface)
+        self.do('ip', 'link', 'set', 'dev', iface, 'up')
+        self.do('ip', 'address', 'add', cidr, 'dev', iface)
 
     def add_iface(self, iface):
         ip('link', 'set', 'dev', iface, 'netns', self.name)
 
-    def exec(self, *cmd):
+    def do(self, *cmd):
         ip(*['netns', 'exec', self.name] + cmd)
 
 

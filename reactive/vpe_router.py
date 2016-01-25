@@ -8,7 +8,6 @@ from charmhelpers.core.hookenv import (
 )
 
 from charms.reactive import (
-    hook,
     when
 )
 
@@ -18,26 +17,15 @@ from charms import router
 cfg = config()
 
 
-@hook('install')
-def deps():
-    # apt_install('some-stuff')
-    pass
-
-
-@hook('config-changed')
-def configure():
-    pass
-
-
 @when('vpe.add-corporation')
 def add_corporation():
     '''
     Create and Activate the network corporation
     '''
 
-    domain_name = action_get('domain_name')
-    iface_name = action_get('iface_name')
-    vlan_id = action_get('vlan_id')
+    domain_name = action_get('domain-name')
+    iface_name = action_get('iface-name')
+    vlan_id = action_get('vlan-id')
     cidr = action_get('cidr')
 
     missing = []
