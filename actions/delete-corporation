@@ -15,4 +15,4 @@ try:
 except Exception as e:
     action_fail(repr(e))
 finally:
-    remove_state('delete.add-corporation')
+    remove_state('delete.delete-corporation')
