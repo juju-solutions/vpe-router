@@ -96,6 +96,101 @@ def add_corporation():
               iface_vlanid)
 
 
+@when('vpe.delete-corporation')
+def delete_corporation():
+
+    domain_name = action_get('domain-name')
+
+    # Remove all tunnels defined for this domain
+    p = router._run([
+        'ip',
+        'netns',
+        'exec',
+        'domain_name',
+        'ip',
+        'tun',
+        'show',
+        '|',
+        'grep',
+        'gre',
+        '|',
+        'grep',
+        '-v',
+        '"remote any"',
+        '|',
+        'cut -d":" -f1'
+    ])
+
+    # `p` should be a tuple of (stdout, stderr)
+    tunnels = p[0]
+
+    for tunnel in tunnels:
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'link',
+            'set',
+            tunnel,
+            'down'
+        )
+
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'tunnel',
+            'del',
+            tunnel
+        )
+
+    # Remove all interfaces associated to the domain
+    p = router._run(
+        'ip',
+        'netns',
+        'exec',
+        'domain_name',
+        'ifconfig',
+        '|',
+        'grep mtu',
+        '|',
+        'cut -d":" -f1'
+    )
+
+    ifaces = p[0]
+    for iface in ifaces:
+
+        # ip netns exec domain_name ip link set $iface down
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'link',
+            'set',
+            iface,
+            'down'
+        )
+
+        # ip link del dev $iface
+        router.ip(
+            'link',
+            'del',
+            'dev',
+            iface
+        )
+
+    # Remove the domain
+    # ip netns del domain_name
+    router.ip(
+        'netns',
+        'del',
+        domain_name
+    )
+
+
 @when('vpe.connect-domains')
 def connect_domains():
     params = [
@@ -172,105 +267,6 @@ def connect_domains():
     )
 
 
-<<<<<<< HEAD
-@when('vpe.delete-corporation')
-def delete_corporation():
-
-    domain_name = action_get('domain-name')
-
-    # Remove all tunnels defined for this domain
-    p = router._run([
-        'ip',
-        'netns',
-        'exec',
-        'domain_name',
-        'ip',
-        'tun',
-        'show',
-        '|',
-        'grep',
-        'gre',
-        '|',
-        'grep',
-        '-v',
-        '"remote any"',
-        '|',
-        'cut -d":" -f1'
-    ])
-    
-    # `p` should be a tuple of (stdout, stderr)
-    tunnels = p[0]
-
-    for tunnel in tunnels:
-        router.ip(
-            'netns',
-            'exec',
-            domain_name,
-            'ip',
-            'link',
-            'set',
-            tunnel,
-            'down'
-        )
-
-        router.ip(
-            'netns',
-            'exec',
-            domain_name,
-            'ip',
-            'tunnel',
-            'del',
-            tunnel
-        )
-
-    # Remove all interfaces associated to the domain
-    p = router._run(
-        'ip',
-        'netns',
-        'exec',
-        'domain_name',
-        'ifconfig',
-        '|',
-        'grep mtu',
-        '|',
-        'cut -d":" -f1'
-    )
-
-    ifaces = p[0]
-    for iface in ifaces:
-
-        # ip netns exec domain_name ip link set $iface down
-        router.ip(
-            'netns',
-            'exec',
-            domain_name,
-            'ip',
-            'link',
-            'set',
-            iface,
-            'down'
-        )
-
-
-        # ip link del dev $iface
-        router.ip(
-            'link',
-            'del',
-            'dev',
-            iface
-        )
-
-    # Remove the domain
-    # ip netns del domain_name
-    router.ip(
-        'netns',
-        'del',
-        domain_name
-    )
-
-
-    pass
-=======
 @when('vpe.delete-domain-connection')
 def delete_domain_connection():
     ''' Remove the tunnel to another router where the domain is present '''
@@ -295,4 +291,3 @@ def delete_domain_connection():
               'tunnel',
               'del',
               tunnel_name)
->>>>>>> juju-solutions/master
