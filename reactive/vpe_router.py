@@ -8,7 +8,6 @@ from charmhelpers.core.hookenv import (
 )
 
 from charms.reactive import (
-    hook,
     when
 )
 
@@ -16,17 +15,6 @@ from charms import router
 
 
 cfg = config()
-
-
-@hook('install')
-def deps():
-    # apt_install('some-stuff')
-    pass
-
-
-@hook('config-changed')
-def configure():
-    pass
 
 
 @when('vpe.add-corporation')
