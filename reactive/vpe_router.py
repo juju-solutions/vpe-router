@@ -174,8 +174,11 @@ def connect_domains():
 
 @when('vpe.delete-corporation')
 def delete_corporation():
+
+    domain_name = action_get('domain-name')
+
     # Remove all tunnels defined for this domain
-    p = _run([
+    p = router._run([
         'ip',
         'netns',
         'exec',
@@ -193,25 +196,76 @@ def delete_corporation():
         '|',
         'cut -d":" -f1'
     ])
-    # tunnels=`ip netns exec domain_name ip tun show | grep gre | grep -v "remote any" | cut -d":" -f1`
-    # for tunnel_name in $tunnels
-    # do
-    #   ip netns exec domain_name ip link set $tunnel_name down
-    #   ip netns exec domain_name ip tunnel del $tunnel_name
-    # done
+    
+    # `p` should be a tuple of (stdout, stderr)
+    tunnels = p[0]
 
+    for tunnel in tunnels:
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'link',
+            'set',
+            tunnel,
+            'down'
+        )
+
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'tunnel',
+            'del',
+            tunnel
+        )
 
     # Remove all interfaces associated to the domain
-    #  ifaces=` ip netns exec domain_name ifconfig | grep mtu | cut -d":" -f1 `
-    # for iface in $ifaces
-    # do
-    #    ip netns exec domain_name ip link set $iface down
-    #    ip link del dev $iface
-    # done
-    #
+    p = router._run(
+        'ip',
+        'netns',
+        'exec',
+        'domain_name',
+        'ifconfig',
+        '|',
+        'grep mtu',
+        '|',
+        'cut -d":" -f1'
+    )
+
+    ifaces = p[0]
+    for iface in ifaces:
+
+        # ip netns exec domain_name ip link set $iface down
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'link',
+            'set',
+            iface,
+            'down'
+        )
+
+
+        # ip link del dev $iface
+        router.ip(
+            'link',
+            'del',
+            'dev',
+            iface
+        )
 
     # Remove the domain
     # ip netns del domain_name
+    router.ip(
+        'netns',
+        'del',
+        domain_name
+    )
 
 
     pass
