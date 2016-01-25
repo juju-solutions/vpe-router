@@ -146,6 +146,46 @@ def connect_domains():
     )
 
 
-@when('vpe.remove-site')
-def remove_route():
+@when('vpe.delete-corporation')
+def delete_corporation():
+    # Remove all tunnels defined for this domain
+    p = _run([
+        'ip',
+        'netns',
+        'exec',
+        'domain_name',
+        'ip',
+        'tun',
+        'show',
+        '|',
+        'grep',
+        'gre',
+        '|',
+        'grep',
+        '-v',
+        '"remote any"',
+        '|',
+        'cut -d":" -f1'
+    ])
+    # tunnels=`ip netns exec domain_name ip tun show | grep gre | grep -v "remote any" | cut -d":" -f1`
+    # for tunnel_name in $tunnels
+    # do
+    #   ip netns exec domain_name ip link set $tunnel_name down
+    #   ip netns exec domain_name ip tunnel del $tunnel_name
+    # done
+
+
+    # Remove all interfaces associated to the domain
+    #  ifaces=` ip netns exec domain_name ifconfig | grep mtu | cut -d":" -f1 `
+    # for iface in $ifaces
+    # do
+    #    ip netns exec domain_name ip link set $iface down
+    #    ip link del dev $iface
+    # done
+    #
+
+    # Remove the domain
+    # ip netns del domain_name
+
+
     pass
