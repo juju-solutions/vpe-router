@@ -103,7 +103,6 @@ def delete_corporation():
 
     # Remove all tunnels defined for this domain
     p = router.ip(
-        'ip',
         'netns',
         'exec',
         'domain_name',
@@ -148,7 +147,6 @@ def delete_corporation():
 
     # Remove all interfaces associated to the domain
     p = router.ip(
-        'ip',
         'netns',
         'exec',
         'domain_name',
