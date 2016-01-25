@@ -172,6 +172,7 @@ def connect_domains():
     )
 
 
+<<<<<<< HEAD
 @when('vpe.delete-corporation')
 def delete_corporation():
 
@@ -269,3 +270,29 @@ def delete_corporation():
 
 
     pass
+=======
+@when('vpe.delete-domain-connection')
+def delete_domain_connection():
+    ''' Remove the tunnel to another router where the domain is present '''
+    domain = action_get('domain-name')
+    tunnel_name = action_get('tunnel-name')
+
+    # ip netns exec domain_name ip link set tunnel_name down
+    router.ip('netns',
+              'exec',
+              domain,
+              'ip',
+              'link',
+              'set',
+              tunnel_name,
+              'down')
+
+    # ip netns exec domain_name ip tunnel del tunnel_name
+    router.ip('netns',
+              'exec',
+              domain,
+              'ip',
+              'tunnel',
+              'del',
+              tunnel_name)
+>>>>>>> juju-solutions/master
