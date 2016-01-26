@@ -34,9 +34,8 @@ def validate_config():
             raise Exception('invalid credentials')
     except Exception as e:
         remove_state('vpe.configured')
-        set_state('blocked', 'validation failed: %s' % e)
-    finally:
-        remove_state('blocked')
+        status_set('blocked', 'validation failed: %s' % e)
+    else:
         set_state('vpe.configured')
         status_set('active', 'Ready!')
 
