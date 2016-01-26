@@ -113,6 +113,7 @@ def add_corporation():
               cidr,
               'dev',
               iface_vlanid)
+    status_set('active', 'Ready!')
 
 
 @when('vpe.configured')
@@ -120,6 +121,8 @@ def add_corporation():
 def delete_corporation():
 
     domain_name = action_get('domain-name')
+
+    status_set('maintenance', 'Deleting corporation {}'.format(domain_name))
 
     # Remove all tunnels defined for this domain
     p = router.ip(
@@ -207,11 +210,13 @@ def delete_corporation():
         'del',
         domain_name
     )
+    status_set('active', 'Ready!')
 
 
 @when('vpe.configured')
 @when('vpe.connect-domains')
 def connect_domains():
+
     params = [
         'domain-name',
         'iface-name',
@@ -227,6 +232,8 @@ def connect_domains():
     config = {}
     for p in params:
         config[p] = action_get(p)
+
+    status_set('maintenance', 'Connecting domains')
 
     # ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
     #    iface_name key tunnel_key csum
@@ -283,6 +290,7 @@ def connect_domains():
         'dev',
         config['tunnel-name']
     )
+    status_set('active', 'Ready!')
 
 
 @when('vpe.configured')
@@ -291,6 +299,8 @@ def delete_domain_connection():
     ''' Remove the tunnel to another router where the domain is present '''
     domain = action_get('domain-name')
     tunnel_name = action_get('tunnel-name')
+
+    status_set('maintenance', 'Deleting domain connection: {}'.format(domain))
 
     # ip netns exec domain_name ip link set tunnel_name down
     router.ip('netns',
@@ -310,3 +320,4 @@ def delete_domain_connection():
               'tunnel',
               'del',
               tunnel_name)
+    status_set('active', 'Ready!')
