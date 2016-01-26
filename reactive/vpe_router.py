@@ -25,7 +25,7 @@ cfg = config()
 @hook('config-changed')
 def validate_config():
     try:
-        if ('pass', 'vpe-router', 'user') not in cfg:
+        if not cfg.keys() & {'pass', 'vpe-router', 'user'}:
             raise Exception('vpe-router, user, and pass need to be set')
 
         out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
@@ -35,8 +35,10 @@ def validate_config():
     except Exception as e:
         remove_state('vpe.configured')
         set_state('blocked', 'validation failed: %s' % e)
-    else:
+    finally:
+        remove_state('blocked')
         set_state('vpe.configured')
+        status_set('active', 'Ready!')
 
 
 @when_not('vpe.configured')
@@ -65,15 +67,6 @@ def add_corporation():
     iface_name = action_get('iface-name')
     vlan_id = action_get('vlan-id')
     cidr = action_get('cidr')
-
-    missing = []
-    for item in [domain_name, iface_name, vlan_id, cidr]:
-        if not item:
-            missing.append(item)
-
-    if len(missing) > 0:
-        log('CRITICAL', 'Unable to complete operation due to missing required'
-            'param: {}'.format('item'))
 
     iface_vlanid = '%s.%s' % (iface_name, vlan_id)
 
@@ -230,11 +223,10 @@ def connect_domains():
         'internal-remote-ip',
         'tunnel-type'
     ]
+
     config = {}
     for p in params:
         config[p] = action_get(p)
-        if not config[p]:
-            return action_fail('Missing required value for parameter %s' % p)
 
     # ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
     #    iface_name key tunnel_key csum
