@@ -25,18 +25,20 @@ cfg = config()
 @hook('config-changed')
 def validate_config():
     try:
-        if ('pass', 'vpe-router', 'user') not in cfg:
+        if not all(k in cfg for k in ['pass', 'vpe-router', 'user']):
             raise Exception('vpe-router, user, and pass need to be set')
 
         out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
                               cfg.get('user'), cfg.get('pass'))
         if out.strip() != cfg.get('user'):
             raise Exception('invalid credentials')
+
+        set_state('vpe.configured')
+        status_set('active', 'ready!')
+
     except Exception as e:
         remove_state('vpe.configured')
-        set_state('blocked', 'validation failed: %s' % e)
-    else:
-        set_state('vpe.configured')
+        status_set('blocked', 'validation failed: %s' % e)
 
 
 @when_not('vpe.configured')
@@ -51,7 +53,7 @@ def not_ready_add():
     if helpers.any_states(*actions):
         action_fail('VPE is not configured')
 
-    status_set('blocked', 'VPE is not configured')
+    status_set('blocked', 'vpe is not configured')
 
 
 @when('vpe.configured')
@@ -66,18 +68,9 @@ def add_corporation():
     vlan_id = action_get('vlan-id')
     cidr = action_get('cidr')
 
-    missing = []
-    for item in [domain_name, iface_name, vlan_id, cidr]:
-        if not item:
-            missing.append(item)
-
-    if len(missing) > 0:
-        log('CRITICAL', 'Unable to complete operation due to missing required'
-            'param: {}'.format('item'))
-
     iface_vlanid = '%s.%s' % (iface_name, vlan_id)
 
-    status_set('maintenance', 'Adding corporation {}'.format(domain_name))
+    status_set('maintenance', 'adding corporation {}'.format(domain_name))
 
     # ip link add link iface_name domain_name vlan_id type vlan id vlan_id
     router.ip('link',
@@ -120,6 +113,7 @@ def add_corporation():
               cidr,
               'dev',
               iface_vlanid)
+    status_set('active', 'ready!')
 
 
 @when('vpe.configured')
@@ -127,6 +121,8 @@ def add_corporation():
 def delete_corporation():
 
     domain_name = action_get('domain-name')
+
+    status_set('maintenance', 'deleting corporation {}'.format(domain_name))
 
     # Remove all tunnels defined for this domain
     p = router.ip(
@@ -214,11 +210,13 @@ def delete_corporation():
         'del',
         domain_name
     )
+    status_set('active', 'ready!')
 
 
 @when('vpe.configured')
 @when('vpe.connect-domains')
 def connect_domains():
+
     params = [
         'domain-name',
         'iface-name',
@@ -230,11 +228,12 @@ def connect_domains():
         'internal-remote-ip',
         'tunnel-type'
     ]
+
     config = {}
     for p in params:
         config[p] = action_get(p)
-        if not config[p]:
-            return action_fail('Missing required value for parameter %s' % p)
+
+    status_set('maintenance', 'connecting domains')
 
     # ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
     #    iface_name key tunnel_key csum
@@ -291,6 +290,7 @@ def connect_domains():
         'dev',
         config['tunnel-name']
     )
+    status_set('active', 'ready!')
 
 
 @when('vpe.configured')
@@ -299,6 +299,8 @@ def delete_domain_connection():
     ''' Remove the tunnel to another router where the domain is present '''
     domain = action_get('domain-name')
     tunnel_name = action_get('tunnel-name')
+
+    status_set('maintenance', 'deleting domain connection: {}'.format(domain))
 
     # ip netns exec domain_name ip link set tunnel_name down
     router.ip('netns',
@@ -318,3 +320,4 @@ def delete_domain_connection():
               'tunnel',
               'del',
               tunnel_name)
+    status_set('active', 'ready!')
