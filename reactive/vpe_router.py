@@ -34,7 +34,7 @@ def validate_config():
             raise Exception('invalid credentials')
 
         set_state('vpe.configured')
-        status_set('active', 'Ready!')
+        status_set('active', 'ready!')
 
     except Exception as e:
         remove_state('vpe.configured')
@@ -53,7 +53,7 @@ def not_ready_add():
     if helpers.any_states(*actions):
         action_fail('VPE is not configured')
 
-    status_set('blocked', 'VPE is not configured')
+    status_set('blocked', 'vpe is not configured')
 
 
 @when('vpe.configured')
@@ -70,7 +70,7 @@ def add_corporation():
 
     iface_vlanid = '%s.%s' % (iface_name, vlan_id)
 
-    status_set('maintenance', 'Adding corporation {}'.format(domain_name))
+    status_set('maintenance', 'adding corporation {}'.format(domain_name))
 
     # ip link add link iface_name domain_name vlan_id type vlan id vlan_id
     router.ip('link',
@@ -113,7 +113,7 @@ def add_corporation():
               cidr,
               'dev',
               iface_vlanid)
-    status_set('active', 'Ready!')
+    status_set('active', 'ready!')
 
 
 @when('vpe.configured')
@@ -122,7 +122,7 @@ def delete_corporation():
 
     domain_name = action_get('domain-name')
 
-    status_set('maintenance', 'Deleting corporation {}'.format(domain_name))
+    status_set('maintenance', 'deleting corporation {}'.format(domain_name))
 
     # Remove all tunnels defined for this domain
     p = router.ip(
@@ -210,7 +210,7 @@ def delete_corporation():
         'del',
         domain_name
     )
-    status_set('active', 'Ready!')
+    status_set('active', 'ready!')
 
 
 @when('vpe.configured')
@@ -233,7 +233,7 @@ def connect_domains():
     for p in params:
         config[p] = action_get(p)
 
-    status_set('maintenance', 'Connecting domains')
+    status_set('maintenance', 'connecting domains')
 
     # ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
     #    iface_name key tunnel_key csum
@@ -290,7 +290,7 @@ def connect_domains():
         'dev',
         config['tunnel-name']
     )
-    status_set('active', 'Ready!')
+    status_set('active', 'ready!')
 
 
 @when('vpe.configured')
@@ -300,7 +300,7 @@ def delete_domain_connection():
     domain = action_get('domain-name')
     tunnel_name = action_get('tunnel-name')
 
-    status_set('maintenance', 'Deleting domain connection: {}'.format(domain))
+    status_set('maintenance', 'deleting domain connection: {}'.format(domain))
 
     # ip netns exec domain_name ip link set tunnel_name down
     router.ip('netns',
@@ -320,4 +320,4 @@ def delete_domain_connection():
               'tunnel',
               'del',
               tunnel_name)
-    status_set('active', 'Ready!')
+    status_set('active', 'ready!')
