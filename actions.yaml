@@ -13,12 +13,14 @@ add-corporation:
     cidr:
       type: string
       description: Network range to assign to the tagged vlan-id
+  required: [domain-name, iface-name, vlan-id, cidr]
 delete-corporation:
   description: Remove the corporation from the router completely
   params:
     domain-name:
       type: string
       description: The domain of the corporation to remove
+  required: [domain-name]
 connect-domains:
   description: Connect the router to another router, where the same domain is present
   params:
@@ -50,6 +52,7 @@ connect-domains:
       type: string
       default: gre
       description: The type of tunnel to establish.
+  required: [domain-name, iface-name, tunnel-name, local-ip, remote-ip, tunnel-key, internal-local-ip, internal-remote-ip]
 delete-domain-connection:
   description: Remove the tunnel to another router where the domain is present.
   params:
@@ -59,3 +62,4 @@ delete-domain-connection:
     tunnel-name:
       type: string
       description: The name of the tunnel to unlink that the domain-name is attached to
+  required: [domain-name, tunnel-name]
