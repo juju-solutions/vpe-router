@@ -148,7 +148,7 @@ def delete_corporation():
     )
 
     # `p` should be a tuple of (stdout, stderr)
-    tunnels = p[0]
+    tunnels = p[0].split('\n')
 
     for tunnel in tunnels:
         router.ip(
@@ -184,7 +184,7 @@ def delete_corporation():
         'cut -d":" -f1'
     )
 
-    ifaces = p[0]
+    ifaces = p[0].split('\n')
     for iface in ifaces:
 
         # ip netns exec domain_name ip link set $iface down
