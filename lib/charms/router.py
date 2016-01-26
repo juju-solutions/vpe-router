@@ -1,5 +1,8 @@
 
+import paramiko
 import subprocess
+
+from charmhelpers.core.hookenv import config
 
 
 class NetNS(object):
@@ -17,19 +20,19 @@ class NetNS(object):
         return cls(name)
 
     def up(self, iface, cidr):
-        self.exec('ip', 'link', 'set', 'dev', iface, 'up')
-        self.exec('ip', 'address', 'add', cidr, 'dev', iface)
+        self.do('ip', 'link', 'set', 'dev', iface, 'up')
+        self.do('ip', 'address', 'add', cidr, 'dev', iface)
 
     def add_iface(self, iface):
         ip('link', 'set', 'dev', iface, 'netns', self.name)
 
-    def exec(self, *cmd):
+    def do(self, *cmd):
         ip(*['netns', 'exec', self.name] + cmd)
 
 
 def ip(*args):
     try:
-        _run(['ip'] + list(args))
+        return _run(['ip'] + list(args))
     except subprocess.CalledProcessError as e:
         raise Exception('unable to run %s: %s' % (' '.join(['ip'] + args), e))
 
@@ -37,6 +40,26 @@ def ip(*args):
 def _run(cmd, env=None):
     if isinstance(cmd, str):
         cmd = cmd.split() if ' ' in cmd else [cmd]
-    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
 
+    return ssh(cmd, config('vpe-router'), config('user'), config('pass'))
+
+    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
     return p.communicate()
+
+
+def ssh(cmd, host, user, password=None):
+    ''' Suddenly this project needs to SSH to something. So we replicate what
+        _run was doing with subprocess using the Paramiko library. This is
+        temporary until this charm /is/ the VPE Router '''
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(host, port=22, username=user, password=password)
+
+    stdin, stdout, stderr = client.exec_command(' '.join(cmd))
+    retcode = stdout.channel.recv_exit_status()
+    client.close()  # @TODO re-use connections
+    if retcode > 0:
+        raise subprocess.CalledProcessError(returncode=retcode, cmd=cmd,
+                                            output=''.join(stdout))
+    return (''.join(stdout), ''.join(stderr))

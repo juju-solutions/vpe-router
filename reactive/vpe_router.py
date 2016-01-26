@@ -9,7 +9,11 @@ from charmhelpers.core.hookenv import (
 
 from charms.reactive import (
     hook,
-    when
+    when,
+    when_not,
+    helpers,
+    set_state,
+    remove_state,
 )
 
 from charms import router
@@ -18,26 +22,48 @@ from charms import router
 cfg = config()
 
 
-@hook('install')
-def deps():
-    # apt_install('some-stuff')
-    pass
-
-
 @hook('config-changed')
-def configure():
-    pass
+def validate_config():
+    try:
+        if ('pass', 'vpe-router', 'user') not in cfg:
+            raise Exception('vpe-router, user, and pass need to be set')
+
+        out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
+                              cfg.get('user'), cfg.get('pass'))
+        if out.strip() != cfg.get('user'):
+            raise Exception('invalid credentials')
+    except Exception as e:
+        remove_state('vpe.configured')
+        set_state('blocked', 'validation failed: %s' % e)
+    else:
+        set_state('vpe.configured')
 
 
+@when_not('vpe.configured')
+def not_ready_add():
+    actions = [
+        'vpe.add-corporation',
+        'vpe.connect-domains',
+        'vpe.delete-domain-connections',
+        'vpe.remove-corporation',
+    ]
+
+    if helpers.any_states(*actions):
+        action_fail('VPE is not configured')
+
+    status_set('blocked', 'VPE is not configured')
+
+
+@when('vpe.configured')
 @when('vpe.add-corporation')
 def add_corporation():
     '''
     Create and Activate the network corporation
     '''
 
-    domain_name = action_get('domain_name')
-    iface_name = action_get('iface_name')
-    vlan_id = action_get('vlan_id')
+    domain_name = action_get('domain-name')
+    iface_name = action_get('iface-name')
+    vlan_id = action_get('vlan-id')
     cidr = action_get('cidr')
 
     missing = []
@@ -96,6 +122,101 @@ def add_corporation():
               iface_vlanid)
 
 
+@when('vpe.configured')
+@when('vpe.delete-corporation')
+def delete_corporation():
+
+    domain_name = action_get('domain-name')
+
+    # Remove all tunnels defined for this domain
+    p = router.ip(
+        'netns',
+        'exec',
+        'domain_name',
+        'ip',
+        'tun',
+        'show',
+        '|',
+        'grep',
+        'gre',
+        '|',
+        'grep',
+        '-v',
+        '"remote any"',
+        '|',
+        'cut -d":" -f1'
+    )
+
+    # `p` should be a tuple of (stdout, stderr)
+    tunnels = p[0].split('\n')
+
+    for tunnel in tunnels:
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'link',
+            'set',
+            tunnel,
+            'down'
+        )
+
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'tunnel',
+            'del',
+            tunnel
+        )
+
+    # Remove all interfaces associated to the domain
+    p = router.ip(
+        'netns',
+        'exec',
+        'domain_name',
+        'ifconfig',
+        '|',
+        'grep mtu',
+        '|',
+        'cut -d":" -f1'
+    )
+
+    ifaces = p[0].split('\n')
+    for iface in ifaces:
+
+        # ip netns exec domain_name ip link set $iface down
+        router.ip(
+            'netns',
+            'exec',
+            domain_name,
+            'ip',
+            'link',
+            'set',
+            iface,
+            'down'
+        )
+
+        # ip link del dev $iface
+        router.ip(
+            'link',
+            'del',
+            'dev',
+            iface
+        )
+
+    # Remove the domain
+    # ip netns del domain_name
+    router.ip(
+        'netns',
+        'del',
+        domain_name
+    )
+
+
+@when('vpe.configured')
 @when('vpe.connect-domains')
 def connect_domains():
     params = [
@@ -172,6 +293,28 @@ def connect_domains():
     )
 
 
-@when('vpe.remove-site')
-def remove_route():
-    pass
+@when('vpe.configured')
+@when('vpe.delete-domain-connection')
+def delete_domain_connection():
+    ''' Remove the tunnel to another router where the domain is present '''
+    domain = action_get('domain-name')
+    tunnel_name = action_get('tunnel-name')
+
+    # ip netns exec domain_name ip link set tunnel_name down
+    router.ip('netns',
+              'exec',
+              domain,
+              'ip',
+              'link',
+              'set',
+              tunnel_name,
+              'down')
+
+    # ip netns exec domain_name ip tunnel del tunnel_name
+    router.ip('netns',
+              'exec',
+              domain,
+              'ip',
+              'tunnel',
+              'del',
+              tunnel_name)
