@@ -32,12 +32,13 @@ def validate_config():
                               cfg.get('user'), cfg.get('pass'))
         if out.strip() != cfg.get('user'):
             raise Exception('invalid credentials')
+
+        set_state('vpe.configured')
+        status_set('active', 'Ready!')
+
     except Exception as e:
         remove_state('vpe.configured')
         status_set('blocked', 'validation failed: %s' % e)
-    else:
-        set_state('vpe.configured')
-        status_set('active', 'Ready!')
 
 
 @when_not('vpe.configured')
