@@ -1,0 +1,13 @@
+options:
+  vpe-router:
+    default:
+    type: string
+    description: Hostname or IP of the vpe router to connect to
+  user:
+    type: string
+    default: root
+    description: Username for VPE Router
+  pass:
+    type: string
+    default: 
+    description: Password for VPE Router

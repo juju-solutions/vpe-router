@@ -8,7 +8,12 @@ from charmhelpers.core.hookenv import (
 )
 
 from charms.reactive import (
-    when
+    hook,
+    when,
+    when_not,
+    helpers,
+    set_state,
+    remove_state,
 )
 
 from charms import router
@@ -17,6 +22,39 @@ from charms import router
 cfg = config()
 
 
+@hook('config-changed')
+def validate_config():
+    try:
+        if ('pass', 'vpe-router', 'user') not in cfg:
+            raise Exception('vpe-router, user, and pass need to be set')
+
+        out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
+                              cfg.get('user'), cfg.get('pass'))
+        if out.strip() != cfg.get('user'):
+            raise Exception('invalid credentials')
+    except Exception as e:
+        remove_state('vpe.configured')
+        set_state('blocked', 'validation failed: %s' % e)
+    else:
+        set_state('vpe.configured')
+
+
+@when_not('vpe.configured')
+def not_ready_add():
+    actions = [
+        'vpe.add-corporation',
+        'vpe.connect-domains',
+        'vpe.delete-domain-connections',
+        'vpe.remove-corporation',
+    ]
+
+    if helpers.any_states(*actions):
+        action_fail('VPE is not configured')
+
+    status_set('blocked', 'VPE is not configured')
+
+
+@when('vpe.configured')
 @when('vpe.add-corporation')
 def add_corporation():
     '''
@@ -84,6 +122,7 @@ def add_corporation():
               iface_vlanid)
 
 
+@when('vpe.configured')
 @when('vpe.delete-corporation')
 def delete_corporation():
 
@@ -109,7 +148,7 @@ def delete_corporation():
     )
 
     # `p` should be a tuple of (stdout, stderr)
-    tunnels = p[0]
+    tunnels = p[0].split('\n')
 
     for tunnel in tunnels:
         router.ip(
@@ -145,7 +184,7 @@ def delete_corporation():
         'cut -d":" -f1'
     )
 
-    ifaces = p[0]
+    ifaces = p[0].split('\n')
     for iface in ifaces:
 
         # ip netns exec domain_name ip link set $iface down
@@ -177,6 +216,7 @@ def delete_corporation():
     )
 
 
+@when('vpe.configured')
 @when('vpe.connect-domains')
 def connect_domains():
     params = [
@@ -253,6 +293,7 @@ def connect_domains():
     )
 
 
+@when('vpe.configured')
 @when('vpe.delete-domain-connection')
 def delete_domain_connection():
     ''' Remove the tunnel to another router where the domain is present '''
