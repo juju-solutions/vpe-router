@@ -25,7 +25,7 @@ cfg = config()
 @hook('config-changed')
 def validate_config():
     try:
-        if not cfg.keys() & {'pass', 'vpe-router', 'user'}:
+        if not all(k in cfg for k in ['pass', 'vpe-router', 'user']):
             raise Exception('vpe-router, user, and pass need to be set')
 
         out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
