@@ -8,7 +8,7 @@ add-corporation:
       type: string
       description: Device name. eg eth1
     vlan-id:
-      type: string
+      type: integer
       description: The name of the vlan?
     cidr:
       type: string
