@@ -13,6 +13,6 @@ set_state('vpe.delete-corporation')
 try:
     main()
 except Exception as e:
-    action_fail(repr(e))
+    action_fail(str(e))
 finally:
     remove_state('vpe.delete-corporation')
