@@ -34,7 +34,7 @@ def ip(*args):
     try:
         return _run(['ip'] + list(args))
     except subprocess.CalledProcessError as e:
-        raise Exception('unable to run %s: %s' % (' '.join(['ip'] + args), e))
+        raise Exception('Unable to run: %s' % e)
 
 
 def _run(cmd, env=None):
@@ -52,14 +52,16 @@ def ssh(cmd, host, user, password=None):
         _run was doing with subprocess using the Paramiko library. This is
         temporary until this charm /is/ the VPE Router '''
 
+    cmds = ' '.join(cmd)
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(host, port=22, username=user, password=password)
 
-    stdin, stdout, stderr = client.exec_command(' '.join(cmd))
+    stdin, stdout, stderr = client.exec_command(cmds)
     retcode = stdout.channel.recv_exit_status()
     client.close()  # @TODO re-use connections
     if retcode > 0:
-        raise subprocess.CalledProcessError(returncode=retcode, cmd=cmd,
+        raise subprocess.CalledProcessError(returncode=retcode, cmd=cmds,
                                             output=''.join(stdout))
     return (''.join(stdout), ''.join(stderr))
