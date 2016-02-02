@@ -65,7 +65,8 @@ def add_corporation():
 
     domain_name = action_get('domain-name')
     iface_name = action_get('iface-name')
-    vlan_id = action_get('vlan-id')
+    # HACK: python's list, used deeper, throws an exception on ints in a tuple
+    vlan_id = str(action_get('vlan-id'))
     cidr = action_get('cidr')
 
     iface_vlanid = '%s.%s' % (iface_name, vlan_id)
