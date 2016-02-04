@@ -90,8 +90,7 @@ def add_corporation():
     """
     $ ip netns add domain
     """
-    router.ip('link',
-              'netns',
+    router.ip('netns',
               'add',
               domain_name)
 
