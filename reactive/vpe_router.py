@@ -4,7 +4,6 @@ from charmhelpers.core.hookenv import (
     status_set,
     action_get,
     action_fail,
-    log
 )
 
 from charms.reactive import (
@@ -73,20 +72,23 @@ def add_corporation():
 
     status_set('maintenance', 'adding corporation {}'.format(domain_name))
 
-    # ip link add link iface_name domain_name vlan_id type vlan id vlan_id
+    """
+    $ ip link add link eth3 name eth3.103 type vlan id 103
+    """
     router.ip('link',
               'add',
               'link',
               iface_name,
               'name',
-              domain_name,
-              vlan_id,
+              iface_vlanid,
               'type',
               'vlan',
               'id',
               vlan_id)
 
-    # ip link set dev iface_vlanid netns domain_name
+    """
+    $ ip link set dev eth3.103 netns corpB
+    """
     router.ip('link',
               'set',
               'dev',
@@ -94,7 +96,9 @@ def add_corporation():
               'netns',
               domain_name)
 
-    # ip netns exec domain_name ip link set dev iface_vlanid up
+    """
+    $ ip netns exec corpB ip link set dev eth3.103 up
+    """
     router.ip('netns',
               'exec',
               domain_name,
@@ -105,7 +109,9 @@ def add_corporation():
               iface_vlanid,
               'up')
 
-    # ip netns exec domain_name ip address add cidr dev iface_vlanid
+    """
+    $ ip netns exec corpB ip address add 10.0.1.1/24 dev eth3.103
+    """
     router.ip('netns',
               'exec',
               domain_name,
@@ -126,11 +132,18 @@ def delete_corporation():
 
     status_set('maintenance', 'deleting corporation {}'.format(domain_name))
 
-    # Remove all tunnels defined for this domain
+    """
+    Remove all tunnels defined for this domain
+
+    $ ip netns exec domain_name ip tun show
+        | grep gre
+        | grep -v "remote any"
+        | cut -d":" -f1`
+    """
     p = router.ip(
         'netns',
         'exec',
-        'domain_name',
+        domain_name,
         'ip',
         'tun',
         'show',
@@ -149,6 +162,9 @@ def delete_corporation():
     tunnels = p[0].split('\n')
 
     for tunnel in tunnels:
+        """
+        $ ip netns exec domain_name ip link set $tunnel_name down
+        """
         router.ip(
             'netns',
             'exec',
@@ -160,6 +176,9 @@ def delete_corporation():
             'down'
         )
 
+        """
+        $ ip netns exec domain_name ip tunnel del $tunnel_name
+        """
         router.ip(
             'netns',
             'exec',
@@ -170,11 +189,15 @@ def delete_corporation():
             tunnel
         )
 
-    # Remove all interfaces associated to the domain
+    """
+    Remove all interfaces associated to the domain
+
+    $ ip netns exec domain_name ifconfig | grep mtu | cut -d":" -f1
+    """
     p = router.ip(
         'netns',
         'exec',
-        'domain_name',
+        domain_name,
         'ifconfig',
         '|',
         'grep mtu',
@@ -185,7 +208,9 @@ def delete_corporation():
     ifaces = p[0].split('\n')
     for iface in ifaces:
 
-        # ip netns exec domain_name ip link set $iface down
+        """
+        $ ip netns exec domain_name ip link set $iface down
+        """
         router.ip(
             'netns',
             'exec',
@@ -197,7 +222,9 @@ def delete_corporation():
             'down'
         )
 
-        # ip link del dev $iface
+        """
+        $ ip link del dev $iface
+        """
         router.ip(
             'link',
             'del',
@@ -205,8 +232,11 @@ def delete_corporation():
             iface
         )
 
-    # Remove the domain
-    # ip netns del domain_name
+    """
+    Remove the domain
+
+    $ ip netns del domain_name
+    """
     router.ip(
         'netns',
         'del',
@@ -237,8 +267,10 @@ def connect_domains():
 
     status_set('maintenance', 'connecting domains')
 
-    # ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
-    #    iface_name key tunnel_key csum
+    """
+    $ ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
+        iface_name key tunnel_key csum
+    """
     router.ip(
         'tunnel',
         'add',
@@ -255,16 +287,22 @@ def connect_domains():
         config['tunnel-key'],
         'csum'
     )
-    # ip link set dev tunnel_name netns domain_name
+
+    """
+    $ ip link set dev tunnel_name netns domain_name
+    """
     router.ip(
         'link',
         'set',
         'dev',
         config['tunnel-name'],
-        'up'
+        'netns',
+        config['domain-name']
     )
 
-    # ip netns exec domain_name ip link set dev tunnel_name up
+    """
+    $ ip netns exec domain_name ip link set dev tunnel_name up
+    """
     router.ip(
         'netns',
         'exec',
@@ -277,8 +315,10 @@ def connect_domains():
         'up'
     )
 
-    # ip netns exec domain_name ip address add internal_local_ip peer \
-    # internal_remote_ip dev tunnel_name
+    """
+    $ ip netns exec domain_name ip address add internal_local_ip peer
+        internal_remote_ip dev tunnel_name
+    """
     router.ip(
         'netns',
         'exec',
@@ -304,7 +344,9 @@ def delete_domain_connection():
 
     status_set('maintenance', 'deleting domain connection: {}'.format(domain))
 
-    # ip netns exec domain_name ip link set tunnel_name down
+    """
+    $ ip netns exec domain_name ip link set tunnel_name down
+    """
     router.ip('netns',
               'exec',
               domain,
@@ -314,7 +356,9 @@ def delete_domain_connection():
               tunnel_name,
               'down')
 
-    # ip netns exec domain_name ip tunnel del tunnel_name
+    """
+    $ ip netns exec domain_name ip tunnel del tunnel_name
+    """
     router.ip('netns',
               'exec',
               domain,
@@ -322,4 +366,5 @@ def delete_domain_connection():
               'tunnel',
               'del',
               tunnel_name)
+
     status_set('active', 'ready!')
