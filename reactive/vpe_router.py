@@ -78,6 +78,7 @@ def add_corporation():
               'add',
               'link',
               iface_name,
+              'name',
               domain_name,
               vlan_id,
               'type',
