@@ -41,7 +41,8 @@ def _run(cmd, env=None):
     if isinstance(cmd, str):
         cmd = cmd.split() if ' ' in cmd else [cmd]
 
-    return ssh(cmd, config('vpe-router'), config('user'), config('pass'))
+    if all(k in cfg for k in ['pass', 'vpe-router', 'user']):
+        return ssh(cmd, config('vpe-router'), config('user'), config('pass'))
 
     p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
     return p.communicate()
