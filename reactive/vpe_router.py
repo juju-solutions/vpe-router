@@ -25,13 +25,16 @@ cfg = config()
 @hook('config-changed')
 def validate_config():
     try:
-        if not all(k in cfg for k in ['pass', 'vpe-router', 'user']):
-            raise Exception('vpe-router, user, and pass need to be set')
+        """
+        If the ssh credentials are available, we'll act as a proxy charm.
+        Otherwise, we execute against the unit we're deployed on to.
+        """
 
-        out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
-                              cfg.get('user'), cfg.get('pass'))
-        if out.strip() != cfg.get('user'):
-            raise Exception('invalid credentials')
+        if all(k in cfg for k in ['pass', 'vpe-router', 'user']):
+            out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
+                                  cfg.get('user'), cfg.get('pass'))
+            if out.strip() != cfg.get('user'):
+                raise Exception('invalid credentials')
 
         set_state('vpe.configured')
         status_set('active', 'ready!')
