@@ -90,6 +90,14 @@ def add_corporation():
               'id',
               vlan_id)
 
+
+    """
+    $ ip netns add domain
+    """
+    router.ip('netns',
+              'add',
+              domain_name)
+
     """
     $ ip link set dev eth3.103 netns corpB
     """
