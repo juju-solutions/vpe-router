@@ -29,6 +29,7 @@ def validate_config():
         If the ssh credentials are available, we'll act as a proxy charm.
         Otherwise, we execute against the unit we're deployed on to.
         """
+        # import pdb; pdb.set_trace()
 
         if all(k in cfg for k in ['pass', 'vpe-router', 'user']):
             out, err = router.ssh(['whoami'], cfg.get('vpe-router'),
@@ -77,17 +78,17 @@ def add_corporation():
     status_set('maintenance', 'adding corporation {}'.format(domain_name))
 
     # ip link add link iface_name domain_name vlan_id type vlan id vlan_id
-    router.ip('link',
-              'add',
-              'link',
-              iface_name,
-              domain_name,
-              vlan_id,
-              'type',
-              'vlan',
-              'id',
-              vlan_id)
-
+    retval = router.ip('link',
+                       'add',
+                       'link',
+                       iface_name,
+                       domain_name,
+                       vlan_id,
+                       'type',
+                       'vlan',
+                       'id',
+                       vlan_id)
+    log(retval)
     # ip link set dev iface_vlanid netns domain_name
     router.ip('link',
               'set',
