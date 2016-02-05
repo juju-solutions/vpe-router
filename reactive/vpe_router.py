@@ -117,6 +117,11 @@ def add_corporation():
                   domain_name)
 
         """
+        $ ifconfig eth3 up
+        """
+        router._run(['ifconfig', iface_name, 'up'])
+
+        """
         $ ip netns exec corpB ip link set dev eth3.103 up
         """
         router.ip('netns',
@@ -257,6 +262,16 @@ def delete_corporation():
                     iface,
                     'down'
                 )
+            except subprocess.CalledProcessError as e:
+                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                pass
+
+
+            try:
+                """
+                $ ifconfig eth3 down
+                """
+                router._run(['ifconfig', iface, 'down'])
             except subprocess.CalledProcessError as e:
                 log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
                 pass
