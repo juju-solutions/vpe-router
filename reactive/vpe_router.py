@@ -165,7 +165,7 @@ def delete_corporation():
         $ ip netns exec domain_name ip tun show
             | grep gre
             | grep -v "remote any"
-            | cut -d":" -f1`
+            | cut -d":" -f1
         """
         p = router.ip(
             'netns',
@@ -189,32 +189,40 @@ def delete_corporation():
         tunnels = p[0].split('\n')
 
         for tunnel in tunnels:
-            """
-            $ ip netns exec domain_name ip link set $tunnel_name down
-            """
-            router.ip(
-                'netns',
-                'exec',
-                domain_name,
-                'ip',
-                'link',
-                'set',
-                tunnel,
-                'down'
-            )
+            try:
+                """
+                $ ip netns exec domain_name ip link set $tunnel_name down
+                """
+                router.ip(
+                    'netns',
+                    'exec',
+                    domain_name,
+                    'ip',
+                    'link',
+                    'set',
+                    tunnel,
+                    'down'
+                )
+            except subprocess.CalledProcessError as e:
+                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                pass
 
-            """
-            $ ip netns exec domain_name ip tunnel del $tunnel_name
-            """
-            router.ip(
-                'netns',
-                'exec',
-                domain_name,
-                'ip',
-                'tunnel',
-                'del',
-                tunnel
-            )
+            try:
+                """
+                $ ip netns exec domain_name ip tunnel del $tunnel_name
+                """
+                router.ip(
+                    'netns',
+                    'exec',
+                    domain_name,
+                    'ip',
+                    'tunnel',
+                    'del',
+                    tunnel
+                )
+            except subprocess.CalledProcessError as e:
+                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                pass
 
         """
         Remove all interfaces associated to the domain
@@ -235,44 +243,58 @@ def delete_corporation():
         ifaces = p[0].split('\n')
         for iface in ifaces:
 
+            try:
+                """
+                $ ip netns exec domain_name ip link set $iface down
+                """
+                router.ip(
+                    'netns',
+                    'exec',
+                    domain_name,
+                    'ip',
+                    'link',
+                    'set',
+                    iface,
+                    'down'
+                )
+            except subprocess.CalledProcessError as e:
+                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                pass
+
+            try:
+                """
+                $ ip link del dev $iface
+                """
+                router.ip(
+                    'link',
+                    'del',
+                    'dev',
+                    iface
+                )
+            except subprocess.CalledProcessError as e:
+                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                pass
+
+        try:
             """
-            $ ip netns exec domain_name ip link set $iface down
+            Remove the domain
+
+            $ ip netns del domain_name
             """
             router.ip(
                 'netns',
-                'exec',
-                domain_name,
-                'ip',
-                'link',
-                'set',
-                iface,
-                'down'
-            )
-
-            """
-            $ ip link del dev $iface
-            """
-            router.ip(
-                'link',
                 'del',
-                'dev',
-                iface
+                domain_name
             )
+        except subprocess.CalledProcessError as e:
+            log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+            pass
 
-        """
-        Remove the domain
-
-        $ ip netns del domain_name
-        """
-        router.ip(
-            'netns',
-            'del',
-            domain_name
-        )
     except:
         # Do nothing
         log('delete-corporation failed.')
         pass
+
     finally:
         remove_state('vpe.delete-corporation')
         status_set('active', 'ready!')
@@ -384,28 +406,36 @@ def delete_domain_connection():
     status_set('maintenance', 'deleting domain connection: {}'.format(domain))
 
     try:
-        """
-        $ ip netns exec domain_name ip link set tunnel_name down
-        """
-        router.ip('netns',
-                  'exec',
-                  domain,
-                  'ip',
-                  'link',
-                  'set',
-                  tunnel_name,
-                  'down')
 
-        """
-        $ ip netns exec domain_name ip tunnel del tunnel_name
-        """
-        router.ip('netns',
-                  'exec',
-                  domain,
-                  'ip',
-                  'tunnel',
-                  'del',
-                  tunnel_name)
+        try:
+            """
+            $ ip netns exec domain_name ip link set tunnel_name down
+            """
+            router.ip('netns',
+                      'exec',
+                      domain,
+                      'ip',
+                      'link',
+                      'set',
+                      tunnel_name,
+                      'down')
+        except subprocess.CalledProcessError as e:
+            pass
+
+        try:
+            """
+            $ ip netns exec domain_name ip tunnel del tunnel_name
+            """
+            router.ip('netns',
+                      'exec',
+                      domain,
+                      'ip',
+                      'tunnel',
+                      'del',
+                      tunnel_name)
+        except subprocess.CalledProcessError as e:
+            pass
+
     except:
         pass
     finally:
