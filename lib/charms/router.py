@@ -31,21 +31,33 @@ class NetNS(object):
 
 
 def ip(*args):
-    try:
-        return _run(['ip'] + list(args))
-    except subprocess.CalledProcessError as e:
-        raise Exception('Unable to run: %s' % e)
+    return _run(['ip'] + list(args))
 
 
 def _run(cmd, env=None):
     if isinstance(cmd, str):
         cmd = cmd.split() if ' ' in cmd else [cmd]
 
-    if all(k in config() for k in ['pass', 'vpe-router', 'user']):
-        return ssh(cmd, config('vpe-router'), config('user'), config('pass'))
+    cfg = config()
+    if all(k in cfg for k in ['pass', 'vpe-router', 'user']):
+        router = cfg['vpe-router']
+        user = cfg['user']
+        passwd = cfg['pass']
 
-    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
-    return p.communicate()
+        if router and user and passwd:
+            return ssh(cmd, router, user, passwd)
+
+    p = subprocess.Popen(cmd,
+                         env=env,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    retcode = p.poll()
+    if retcode > 0:
+        raise subprocess.CalledProcessError(returncode=retcode,
+                                            cmd=cmd,
+                                            output=stderr.decode("utf-8").strip())
+    return (''.join(stdout), ''.join(stderr))
 
 
 def ssh(cmd, host, user, password=None):
@@ -54,7 +66,6 @@ def ssh(cmd, host, user, password=None):
         temporary until this charm /is/ the VPE Router '''
 
     cmds = ' '.join(cmd)
-
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(host, port=22, username=user, password=password)
@@ -63,6 +74,7 @@ def ssh(cmd, host, user, password=None):
     retcode = stdout.channel.recv_exit_status()
     client.close()  # @TODO re-use connections
     if retcode > 0:
-        raise subprocess.CalledProcessError(returncode=retcode, cmd=cmds,
-                                            output=''.join(stdout))
+        output = stderr.read().strip()
+        raise subprocess.CalledProcessError(returncode=retcode, cmd=cmd,
+                                            output=output)
     return (''.join(stdout), ''.join(stderr))
