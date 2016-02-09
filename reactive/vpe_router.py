@@ -35,10 +35,32 @@ def validate_config():
             passwd = cfg['pass']
 
             if routerip and user and passwd:
+                # Assumption: this will be a root user
                 out, err = router.ssh(['whoami'], routerip,
                                       user, passwd)
                 if out.strip() != user:
                     raise Exception('invalid credentials')
+
+                # Set the router's hostname
+                try:
+                    if user == 'root' and 'hostname' in cfg:
+                        hostname = cfg['hostname']
+                        out, err = router.ssh(['hostname', hostname],
+                                              routerip,
+                                              user, passwd)
+                        out, err = router.ssh(['sed',
+                                              '-i',
+                                               '"s/hostname.*$/hostname %s/"'
+                                               % hostname,
+                                               '/usr/admin/global/hostname.sh'
+                                               ],
+                                              routerip,
+                                              user, passwd)
+
+                except subprocess.CalledProcessError as e:
+                    log('Command failed: %s (%s)' %
+                        (' '.join(e.cmd), str(e.output)))
+                    raise
 
         set_state('vpe.configured')
         status_set('active', 'ready!')
@@ -56,12 +78,88 @@ def not_ready_add():
         'vpe.connect-domains',
         'vpe.delete-domain-connections',
         'vpe.remove-corporation',
+        'vpe.configure-interface',
+        'vpe.configure-ospf',
     ]
 
     if helpers.any_states(*actions):
         action_fail('VPE is not configured')
 
     status_set('blocked', 'vpe is not configured')
+
+
+def configure_ospf(domain, cidr, area, enable=True):
+    """Configure the OSPF service"""
+    upordown = ''
+    if not enable:
+        upordown = 'no'
+    try:
+        # vrfctl list | grep <domain_name> | cut -f 1 | cut -d'f' -f2
+        (stdout, stderr) = router._run(['vrfctl list',
+                                        '|',
+                                        'grep',
+                                        domain,
+                                        '|',
+                                        'cut',
+                                        '-f',
+                                        '1',
+                                        '|',
+                                        'cut',
+                                        '-d"f"',
+                                        '-f2'])
+
+        domain_id = stdout.strip()
+
+        if len(domain_id):
+            router._run(['vtysh',
+                         '-c',
+                         '"configure terminal"',
+                         '-c',
+                         '"router ospf %d vr %d"' % (domain_id, domain_id),
+                         '-c',
+                         '"%s network %s area %s' % (upordown, cidr, area),
+                         ])
+        else:
+            log("Invalid domain id")
+    except subprocess.CalledProcessError as e:
+        action_fail('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
+    finally:
+        remove_state('vpe.configure-interface')
+        status_set('active', 'ready!')
+
+    pass
+
+@when('vpe.configured')
+@when('vpe.configure-interface')
+def configure_interface():
+    """
+    Configure an ethernet interface
+    """
+    iface_name = action_get('iface-name')
+    cidr = action_get('cidr')
+
+    # cidr is optional
+    if cidr:
+        try:
+            router.ip('address', 'add', cidr, 'dev', iface_name)
+        except subprocess.CalledProcessError as e:
+            action_fail('Command failed: %s (%s)' %
+                        (' '.join(e.cmd), str(e.output)))
+        finally:
+            remove_state('vpe.configure-interface')
+            status_set('active', 'ready!')
+            return
+
+    try:
+        router.ip('link', 'set', 'dev', iface_name, 'up')
+    except subprocess.CalledProcessError as e:
+        action_fail('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
+    finally:
+        remove_state('vpe.configure-interface')
+        status_set('active', 'ready!')
+
 
 
 @when('vpe.configured')
@@ -149,7 +247,8 @@ def add_corporation():
 
     except subprocess.CalledProcessError as e:
         delete_corporation()
-        action_fail('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+        action_fail('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
     finally:
         remove_state('vpe.add-corporation')
         status_set('active', 'ready!')
@@ -328,7 +427,9 @@ def connect_domains():
         'tunnel-key',
         'internal-local-ip',
         'internal-remote-ip',
-        'tunnel-type'
+        'tunnel-type',
+        'cidr',
+        'area'
     ]
 
     config = {}
@@ -403,9 +504,12 @@ def connect_domains():
             'dev',
             config['tunnel-name']
         )
+
+        configure_ospf(config['cidr'], config['area'], True)
     except subprocess.CalledProcessError as e:
         delete_domain_connection()
-        action_fail('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+        action_fail('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
     finally:
         remove_state('vpe.connect-domains')
         status_set('active', 'ready!')
@@ -417,6 +521,8 @@ def delete_domain_connection():
     ''' Remove the tunnel to another router where the domain is present '''
     domain = action_get('domain-name')
     tunnel_name = action_get('tunnel-name')
+    cidr = action_get('cidr')
+    area = action_get('area')
 
     status_set('maintenance', 'deleting domain connection: {}'.format(domain))
 
@@ -435,7 +541,8 @@ def delete_domain_connection():
                       tunnel_name,
                       'down')
         except subprocess.CalledProcessError as e:
-            pass
+            action_fail('Command failed: %s (%s)' %
+                        (' '.join(e.cmd), str(e.output)))
 
         try:
             """
@@ -449,8 +556,14 @@ def delete_domain_connection():
                       'del',
                       tunnel_name)
         except subprocess.CalledProcessError as e:
-            pass
+            action_fail('Command failed: %s (%s)' %
+                        (' '.join(e.cmd), str(e.output)))
 
+        try:
+            configure_ospf(cidr, area, False)
+        except subprocess.CalledProcessError as e:
+            action_fail('Command failed: %s (%s)' %
+                        (' '.join(e.cmd), str(e.output)))
     except:
         pass
     finally:

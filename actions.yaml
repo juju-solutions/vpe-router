@@ -1,3 +1,13 @@
+configure-interface:
+  description: Configure an ethernet interface.
+  params:
+    iface-name:
+      type: string
+      description: Device name, e.g. eth1
+    cidr:
+      type: string
+      description: Network range to assign to the interface
+  required: [iface-name]
 add-corporation:
   description: Add a new corporation to the router
   params:
@@ -52,7 +62,13 @@ connect-domains:
       type: string
       default: gre
       description: The type of tunnel to establish.
-  required: [domain-name, iface-name, tunnel-name, local-ip, remote-ip, tunnel-key, internal-local-ip, internal-remote-ip]
+    cidr:
+      type: string
+      description: Network range
+    area:
+      type: string
+      description: Link State Advertisements (LSA) type
+  required: [domain-name, iface-name, tunnel-name, local-ip, remote-ip, tunnel-key, internal-local-ip, internal-remote-ip, cidr, area]
 delete-domain-connection:
   description: Remove the tunnel to another router where the domain is present.
   params:
@@ -62,4 +78,10 @@ delete-domain-connection:
     tunnel-name:
       type: string
       description: The name of the tunnel to unlink that the domain-name is attached to
-  required: [domain-name, tunnel-name]
+    cidr:
+      type: string
+      description: Network range
+    area:
+      type: string
+      description: Link State Advertisements (LSA) type
+  required: [domain-name, tunnel-name, cidr, area]
