@@ -439,6 +439,7 @@ def connect_domains():
 
     status_set('maintenance', 'connecting domains')
 
+
     try:
         """
         $ ip tunnel add tunnel_name mode gre local local_ip remote remote_ip dev
@@ -461,6 +462,32 @@ def connect_domains():
             'csum'
         )
 
+    except subprocess.CalledProcessError as e:
+        log('Command failed (retrying with ip tunnel change): %s (%s)' %
+            (' '.join(e.cmd), str(e.output)))
+    else:
+        """
+        If the tunnel already exists (like gre0) and can't be deleted,
+        modify it instead of trying to add it.
+        """
+        router.ip(
+            'tunnel',
+            'change',
+            config['tunnel-name'],
+            'mode',
+            config['tunnel-type'],
+            'local',
+            config['local-ip'],
+            'remote',
+            config['remote-ip'],
+            'dev',
+            config['iface-name'],
+            'key',
+            config['tunnel-key'],
+            'csum'
+        )
+
+    try:
         """
         $ ip link set dev tunnel_name netns domain_name
         """
