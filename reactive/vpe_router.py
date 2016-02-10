@@ -142,14 +142,15 @@ def configure_interface():
     # cidr is optional
     if cidr:
         try:
-            router.ip('address', 'add', cidr, 'dev', iface_name)
+            # Add may fail, but change seems to add or update
+            router.ip('address', 'change', cidr, 'dev', iface_name)
         except subprocess.CalledProcessError as e:
             action_fail('Command failed: %s (%s)' %
                         (' '.join(e.cmd), str(e.output)))
+            return
         finally:
             remove_state('vpe.configure-interface')
             status_set('active', 'ready!')
-            return
 
     try:
         router.ip('link', 'set', 'dev', iface_name, 'up')
