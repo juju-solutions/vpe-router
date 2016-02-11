@@ -102,7 +102,7 @@ def start_ospfd():
             (' '.join(e.cmd), str(e.output)))
 
 
-def configure_ospf(domain, cidr, area, enable=True):
+def configure_ospf(domain, cidr, area, subnet_cidr, subnet_area, enable=True):
     """Configure the OSPF service"""
 
     # Check to see if the OSPF daemon is running, and start it if not
@@ -136,7 +136,12 @@ def configure_ospf(domain, cidr, area, enable=True):
                          '"router ospf %d vr %d"' % (domain_id, domain_id),
                          '-c',
                          '"%s network %s area %s"' % (upordown, cidr, area),
+                         '-c',
+                         '"%s network %s area %s"' % (upordown,
+                                                      subnet_cidr,
+                                                      subnet_area),
                          ])
+
         else:
             log("Invalid domain id")
     except subprocess.CalledProcessError as e:
@@ -146,7 +151,6 @@ def configure_ospf(domain, cidr, area, enable=True):
         remove_state('vpe.configure-interface')
         status_set('active', 'ready!')
 
-    pass
 
 @when('vpe.configured')
 @when('vpe.configure-interface')
@@ -180,7 +184,6 @@ def configure_interface():
         status_set('active', 'ready!')
 
 
-
 @when('vpe.configured')
 @when('vpe.add-corporation')
 def add_corporation():
@@ -192,6 +195,9 @@ def add_corporation():
     # HACK: python's list, used deeper, throws an exception on ints in a tuple
     vlan_id = str(action_get('vlan-id'))
     cidr = action_get('cidr')
+    area = action_get('area')
+    subnet_cidr = action_get('subnet-cidr')
+    subnet_area = action_get('subnet-area')
 
     iface_vlanid = '%s.%s' % (iface_name, vlan_id)
 
@@ -264,6 +270,8 @@ def add_corporation():
                   'dev',
                   iface_vlanid)
 
+        configure_ospf(domain_name, cidr, area, subnet_cidr, subnet_area, True)
+
     except subprocess.CalledProcessError as e:
         delete_corporation()
         action_fail('Command failed: %s (%s)' %
@@ -278,6 +286,10 @@ def add_corporation():
 def delete_corporation():
 
     domain_name = action_get('domain-name')
+    cidr = action_get('cidr')
+    area = action_get('area')
+    subnet_cidr = action_get('subnet-cidr')
+    subnet_area = action_get('subnet-area')
 
     status_set('maintenance', 'deleting corporation {}'.format(domain_name))
 
@@ -327,7 +339,8 @@ def delete_corporation():
                     'down'
                 )
             except subprocess.CalledProcessError as e:
-                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                log('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
                 pass
 
             try:
@@ -344,7 +357,8 @@ def delete_corporation():
                     tunnel
                 )
             except subprocess.CalledProcessError as e:
-                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                log('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
                 pass
 
         """
@@ -381,9 +395,8 @@ def delete_corporation():
                     'down'
                 )
             except subprocess.CalledProcessError as e:
-                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
-                pass
-
+                log('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
 
             try:
                 """
@@ -391,7 +404,8 @@ def delete_corporation():
                 """
                 router._run(['ifconfig', iface, 'down'])
             except subprocess.CalledProcessError as e:
-                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                log('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
                 pass
 
             try:
@@ -405,7 +419,8 @@ def delete_corporation():
                     iface
                 )
             except subprocess.CalledProcessError as e:
-                log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
+                log('Command failed: %s (%s)' %
+                    (' '.join(e.cmd), str(e.output)))
                 pass
 
         try:
@@ -422,6 +437,17 @@ def delete_corporation():
         except subprocess.CalledProcessError as e:
             log('Command failed: %s (%s)' % (' '.join(e.cmd), str(e.output)))
             pass
+
+        try:
+            configure_ospf(domain_name,
+                           cidr,
+                           area,
+                           subnet_cidr,
+                           subnet_area,
+                           False)
+        except subprocess.CalledProcessError as e:
+            action_fail('Command failed: %s (%s)' %
+                        (' '.join(e.cmd), str(e.output)))
 
     except:
         # Do nothing
@@ -447,8 +473,6 @@ def connect_domains():
         'internal-local-ip',
         'internal-remote-ip',
         'tunnel-type',
-        'cidr',
-        'area'
     ]
 
     config = {}
@@ -556,8 +580,6 @@ def connect_domains():
             'dev',
             config['tunnel-name']
         )
-
-        configure_ospf(config['domain-name'], config['cidr'], config['area'], True)
     except subprocess.CalledProcessError as e:
         delete_domain_connection()
         action_fail('Command failed: %s (%s)' %
@@ -573,8 +595,6 @@ def delete_domain_connection():
     ''' Remove the tunnel to another router where the domain is present '''
     domain = action_get('domain-name')
     tunnel_name = action_get('tunnel-name')
-    cidr = action_get('cidr')
-    area = action_get('area')
 
     status_set('maintenance', 'deleting domain connection: {}'.format(domain))
 
@@ -607,12 +627,6 @@ def delete_domain_connection():
                       'tunnel',
                       'del',
                       tunnel_name)
-        except subprocess.CalledProcessError as e:
-            action_fail('Command failed: %s (%s)' %
-                        (' '.join(e.cmd), str(e.output)))
-
-        try:
-            configure_ospf(domain, cidr, area, False)
         except subprocess.CalledProcessError as e:
             action_fail('Command failed: %s (%s)' %
                         (' '.join(e.cmd), str(e.output)))
