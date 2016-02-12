@@ -9,5 +9,9 @@ options:
     description: Username for VPE Router
   pass:
     type: string
-    default: 
+    default:
     description: Password for VPE Router
+  hostname:
+    type: string
+    default:
+    description: The hostname to set the vpe router to.

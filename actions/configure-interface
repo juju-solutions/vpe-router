@@ -6,12 +6,11 @@ from charms.reactive import main
 from charms.reactive import set_state
 from charmhelpers.core.hookenv import action_fail
 
-
 """
 `set_state` only works here because it's flushed to disk inside the `main()`
 loop. remove_state will need to be called inside the action method.
 """
-set_state('vpe.delete-corporation')
+set_state('vpe.configure-interface')
 
 try:
     main()

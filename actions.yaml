@@ -1,3 +1,13 @@
+configure-interface:
+  description: Configure an ethernet interface.
+  params:
+    iface-name:
+      type: string
+      description: Device name, e.g. eth1
+    cidr:
+      type: string
+      description: Network range to assign to the interface
+  required: [iface-name]
 add-corporation:
   description: Add a new corporation to the router
   params:
@@ -13,14 +23,35 @@ add-corporation:
     cidr:
       type: string
       description: Network range to assign to the tagged vlan-id
-  required: [domain-name, iface-name, vlan-id, cidr]
+    area:
+      type: string
+      description: Link State Advertisements (LSA) type
+    subnet-cidr:
+      type: string
+      description: Network range
+    subnet-area:
+      type: string
+      description: Link State Advertisements (LSA) type
+  required: [domain-name, iface-name, vlan-id, cidr, area, subnet-cidr, subnet-area]
 delete-corporation:
   description: Remove the corporation from the router completely
   params:
     domain-name:
       type: string
       description: The domain of the corporation to remove
-  required: [domain-name]
+    cidr:
+      type: string
+      description: Network range to assign to the tagged vlan-id
+    area:
+      type: string
+      description: Link State Advertisements (LSA) type
+    subnet-cidr:
+      type: string
+      description: Network range
+    subnet-area:
+      type: string
+      description: Link State Advertisements (LSA) type
+  required: [domain-name, cidr, area, subnet-cidr, subnet-area]
 connect-domains:
   description: Connect the router to another router, where the same domain is present
   params:
