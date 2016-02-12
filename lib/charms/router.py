@@ -1,8 +1,5 @@
 
-import paramiko
 import subprocess
-
-from charmhelpers.core.hookenv import config
 
 
 class NetNS(object):
@@ -38,15 +35,6 @@ def _run(cmd, env=None):
     if isinstance(cmd, str):
         cmd = cmd.split() if ' ' in cmd else [cmd]
 
-    cfg = config()
-    if all(k in cfg for k in ['pass', 'vpe-router', 'user']):
-        router = cfg['vpe-router']
-        user = cfg['user']
-        passwd = cfg['pass']
-
-        if router and user and passwd:
-            return ssh(cmd, router, user, passwd)
-
     p = subprocess.Popen(cmd,
                          env=env,
                          stdout=subprocess.PIPE,
@@ -57,24 +45,4 @@ def _run(cmd, env=None):
         raise subprocess.CalledProcessError(returncode=retcode,
                                             cmd=cmd,
                                             output=stderr.decode("utf-8").strip())
-    return (''.join(stdout), ''.join(stderr))
-
-
-def ssh(cmd, host, user, password=None):
-    ''' Suddenly this project needs to SSH to something. So we replicate what
-        _run was doing with subprocess using the Paramiko library. This is
-        temporary until this charm /is/ the VPE Router '''
-
-    cmds = ' '.join(cmd)
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(host, port=22, username=user, password=password)
-
-    stdin, stdout, stderr = client.exec_command(cmds)
-    retcode = stdout.channel.recv_exit_status()
-    client.close()  # @TODO re-use connections
-    if retcode > 0:
-        output = stderr.read().strip()
-        raise subprocess.CalledProcessError(returncode=retcode, cmd=cmd,
-                                            output=output)
     return (''.join(stdout), ''.join(stderr))
