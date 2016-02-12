@@ -260,13 +260,15 @@ def add_corporation():
         """
         $ ip netns exec corpB ip address add 10.0.1.1/24 dev eth3.103
         """
+        mask = cidr.split("/")[1]
+        ip = '%s/%s' % (area, mask)
         router.ip('netns',
                   'exec',
                   domain_name,
                   'ip',
                   'address',
                   'add',
-                  cidr,
+                  ip,
                   'dev',
                   iface_vlanid)
 
